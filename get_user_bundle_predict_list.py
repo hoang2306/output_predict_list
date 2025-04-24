@@ -1,4 +1,4 @@
-git import torch
+import torch
 from tqdm import tqdm 
 import pandas as pd 
 
