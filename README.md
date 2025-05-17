@@ -4,4 +4,4 @@ Next, use the script get_user_bundle_predict_list.py to generate a .csv file con
 
 ⚠️ Make sure to correctly configure the paths to the three .pt files in the script.
 
-I use kaggle to run all model in this repo (i have uploaded notebook for run all model in kaggle environment)
+I use kaggle to run all model in this repo (i have uploaded notebook run-all.ipynb for run all model in kaggle environment - just click run all and wait)
