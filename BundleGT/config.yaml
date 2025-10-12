@@ -18,7 +18,7 @@ iFashion:
   data_path: './datasets'
   batch_size_train: 2048
   batch_size_test: 2048
-  topk: [10, 20, 40, 80]
+  topk: [1, 2, 5, 10, 20, 40, 80]
   neg_num: 1
   test_interval: 2
 
