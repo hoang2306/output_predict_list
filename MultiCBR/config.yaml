@@ -2,7 +2,7 @@ NetEase:
   data_path: './datasets'
   batch_size_train: 2048 # the batch size for training
   batch_size_test: 2048 # the batch size for testing
-  topk: [5, 10, 20, 40, 50, 80, 100] # the topks metrics for evaluation
+  topk: [1, 2, 5, 10, 20, 40, 50, 80, 100] # the topks metrics for evaluation
   neg_num: 1 # number of negatives used for BPR loss. All the experiments use 1.
 
   # the following are the best settings
@@ -38,7 +38,7 @@ iFashion:
   data_path: './datasets'
   batch_size_train: 2048
   batch_size_test: 2048
-  topk: [5, 10, 20, 40, 50, 80, 100]
+  topk: [1, 2, 5, 10, 20, 40, 50, 80, 100]
   neg_num: 1
 
   # the following are the best settings
@@ -70,7 +70,7 @@ Youshu:
   data_path: './datasets'
   batch_size_train: 2048
   batch_size_test: 2048
-  topk: [5, 10, 20, 40, 50, 80, 100]
+  topk: [1, 2, 5, 10, 20, 40, 50, 80, 100]
   neg_num: 1
 
   # the following are the best settings
