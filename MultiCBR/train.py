@@ -23,6 +23,9 @@ def get_cmd():
     parser.add_argument("-d", "--dataset", default="NetEase", type=str, help="which dataset to use, options: NetEase, iFashion")
     parser.add_argument("-m", "--model", default="MultiCBR", type=str, help="which model to use, options: MultiCBR")
     parser.add_argument("-i", "--info", default="", type=str, help="any auxilary info that will be appended to the log file name")
+    
+    # topk for save best 
+    parser.add_argument("-k", "--topk_save", default=20, type=int, help="topk for save best")
     args = parser.parse_args()
 
     return args
@@ -43,6 +46,7 @@ def main():
         conf = conf[dataset_name]
     conf["dataset"] = dataset_name
     conf["model"] = paras["model"]
+    conf["topk_save"] = paras["topk_save"]
     dataset = Datasets(conf)
 
     conf["gpu"] = paras["gpu"]
@@ -227,7 +231,8 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
 
     log = open(log_path, "a")
 
-    topk_ = 20
+    # topk_ = 20
+    topk_ = conf["topk_save"]
     print("top%d as the final evaluation standard" %(topk_))
     if metrics["val"]["recall"][topk_] > best_metrics["val"]["recall"][topk_] and metrics["val"]["ndcg"][topk_] > best_metrics["val"]["ndcg"][topk_]:
         # write user-bundle topk=100 predict list 
