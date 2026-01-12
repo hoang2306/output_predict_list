@@ -14,6 +14,28 @@ import torch.optim as optim
 import pandas as pd 
 from utility import Datasets
 from models.CrossCBR import CrossCBR
+import random 
+import numpy as np 
+import wandb 
+
+def setup_seed(seed=2023, tf32_enabled=False):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.allow_tf32 = tf32_enabled
+    if hasattr(torch.backends, 'cublas'):
+        torch.backends.cublas.allow_tf32 = tf32_enabled
+
+    if hasattr(torch.backends, 'cuda'):
+        torch.backends.cuda.matmul.allow_tf32 = tf32_enabled
+
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
+    torch.use_deterministic_algorithms(True, warn_only=False)
 
 
 def get_cmd():
@@ -23,6 +45,14 @@ def get_cmd():
     parser.add_argument("-d", "--dataset", default="NetEase", type=str, help="which dataset to use, options: NetEase, iFashion")
     parser.add_argument("-m", "--model", default="MultiCBR", type=str, help="which model to use, options: MultiCBR")
     parser.add_argument("-i", "--info", default="", type=str, help="any auxilary info that will be appended to the log file name")
+    
+    # add seed
+    parser.add_argument("-s", "--seed", default=2023, type=int, help="random seed")
+
+    # exp tracking
+    parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
+    parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
+
     args = parser.parse_args()
 
     return args
@@ -43,6 +73,13 @@ def main():
         conf = conf[dataset_name]
     conf["dataset"] = dataset_name
     conf["model"] = paras["model"]
+    conf["seed"] = paras["seed"]
+    conf["wandb_run_name"] = paras["wandb_run_name"]
+    conf["project_name"] = paras["project_name"]
+
+    # setup random seed
+    setup_seed(conf["seed"])
+
     dataset = Datasets(conf)
 
     conf["gpu"] = paras["gpu"]
@@ -113,6 +150,18 @@ def main():
 
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=conf["l2_reg"])
 
+        # setup wandb experiment tracking
+        if conf["wandb_run_name"] != "":
+            run_name = f"{conf['dataset']}_{conf['wandb_run_name']}"
+            run_wandb = wandb.init(
+                project=conf['project_name'],
+                name=run_name,
+                config=conf,
+                # save_code=True,
+                entity='hoangggp-uet-vnu'
+            )
+
+
         batch_cnt = len(dataset.train_loader)
         test_interval_bs = int(batch_cnt * conf["test_interval"])
         ed_interval_bs = int(batch_cnt * conf["ed_interval"])
@@ -151,8 +200,20 @@ def main():
                     metrics = {}
                     metrics["val"], users_val_list, bundle_val_list, _ = test(model, dataset.val_loader, conf)
                     metrics["test"], users_test_list, bundle_test_list, score_test_list = test(model, dataset.test_loader, conf)
-                    best_metrics, best_perform, best_epoch = log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, users_test_list, bundle_test_list, score_test_list)
+                    best_metrics, best_perform, best_epoch, is_better = log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, users_test_list, bundle_test_list, score_test_list)
 
+                    if conf["wandb_run_name"] != "":
+                       # pass 
+                       log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
+                        
+def log_wandb(metrics, best_metrics, run_wandb, step):
+    for type_data in ['test', 'val']:
+        for type_metric in ['recall', 'ndcg']:
+            for topk in [5,10,20,40,80]:
+                run_wandb.log({
+                    f'{type_data}_{type_metric}@{topk}': metrics[type_data][type_metric][topk],
+                    f'best_{type_data}_{type_metric}@{topk}': best_metrics[type_data][type_metric][topk]
+                }, step=step)
 
 def init_best_metrics(conf):
     best_metrics = {}
@@ -226,7 +287,9 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
 
     topk_ = 20
     print("top%d as the final evaluation standard" %(topk_))
+    is_better = False 
     if metrics["val"]["recall"][topk_] > best_metrics["val"]["recall"][topk_] and metrics["val"]["ndcg"][topk_] > best_metrics["val"]["ndcg"][topk_]:
+        is_better = True 
         # write user-bundle topk=100 predict list 
         write_user_bundle_predict_list(
             # fix topk=100 
@@ -256,7 +319,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
 
     log.close()
 
-    return best_metrics, best_perform, best_epoch
+    return best_metrics, best_perform, best_epoch, is_better
 
 
 def test(model, dataloader, conf):
