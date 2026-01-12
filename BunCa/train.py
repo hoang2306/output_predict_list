@@ -74,6 +74,8 @@ def main():
     conf["w4"] = paras["BIweight"]
     conf["sw"] = paras["sweight"]
     conf["nw"] = paras["nbweight"]
+    conf["wandb_run_name"] = paras["wandb_run_name"]
+    conf["project_name"] = paras["project_name"]
 
     os.environ['CUDA_VISIBLE_DEVICES'] = conf["gpu"]
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
