@@ -16,6 +16,9 @@ from utility import Datasets
 from models.BunCa import BunCa
 import numpy as np
 
+import time 
+import wandb 
+
  
 def get_cmd():
     parser = argparse.ArgumentParser()
@@ -32,6 +35,10 @@ def get_cmd():
     parser.add_argument("-w4", "--BIweight", default="0.5", type=float)
     parser.add_argument("-sw", "--sweight", default="0", type=float, help="self weight in i-i matrix")
     parser.add_argument("-nw", "--nbweight", default="1", type=float, help="all neighbors (aggregated) weight")
+
+    # exp tracking
+    parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
+    parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
 
     args = parser.parse_args()
 
@@ -139,6 +146,17 @@ def main():
 
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=conf["l2_reg"])
 
+        # setup wandb experiment tracking
+        if conf["wandb_run_name"] != "":
+            run_name = f"{conf['dataset']}_{conf['wandb_run_name']}"
+            run_wandb = wandb.init(
+                project=conf['project_name'],
+                name=run_name,
+                config=conf,
+                # save_code=True,
+                entity='hoangggp-uet-vnu'
+            )
+
         batch_cnt = len(dataset.train_loader)
         ed_interval_bs = int(batch_cnt * conf["ed_interval"])
 
@@ -183,6 +201,19 @@ def main():
                     user_test_list, bundle_test_list, score_test_list
                 )
 
+                if conf["wandb_run_name"] != "":
+                    # pass 
+                    log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
+
+
+def log_wandb(metrics, best_metrics, run_wandb, step):
+    for type_data in ['test', 'val']:
+        for type_metric in ['recall', 'ndcg']:
+            for topk in [5,10,20,40,80]:
+                run_wandb.log({
+                    f'{type_data}_{type_metric}@{topk}': metrics[type_data][type_metric][topk],
+                    f'best_{type_data}_{type_metric}@{topk}': best_metrics[type_data][type_metric][topk]
+                }, step=step)
 
 def init_best_metrics(conf):
     best_metrics = {}
