@@ -46,6 +46,9 @@ def get_cmd():
     parser.add_argument("-m", "--model", default="MultiCBR", type=str, help="which model to use, options: MultiCBR")
     parser.add_argument("-i", "--info", default="", type=str, help="any auxilary info that will be appended to the log file name")
     
+    # num_workers
+    parser.add_argument("-nw", "--num_workers", default=10, type=int, help="number of workers for data loading")
+
     # add seed
     parser.add_argument("-s", "--seed", default=2023, type=int, help="random seed")
 
@@ -76,6 +79,7 @@ def main():
     conf["seed"] = paras["seed"]
     conf["wandb_run_name"] = paras["wandb_run_name"]
     conf["project_name"] = paras["project_name"]
+    conf["num_workers"] = paras["num_workers"]
 
     # setup random seed
     setup_seed(conf["seed"])
