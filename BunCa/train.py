@@ -40,6 +40,9 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
 
+    # seed
+    parser.add_argument("--seed", type=int, default=2024, help="random seed")
+
     args = parser.parse_args()
 
     return args
@@ -76,6 +79,7 @@ def main():
     conf["nw"] = paras["nbweight"]
     conf["wandb_run_name"] = paras["wandb_run_name"]
     conf["project_name"] = paras["project_name"]
+    conf["seed"] = paras["seed"] # override seed
 
     os.environ['CUDA_VISIBLE_DEVICES'] = conf["gpu"]
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
